@@ -3,8 +3,7 @@ Firmware per il comado remoto della caldaia tramite relais. */
 
 #include <GSM.h> // library for Arduino original GSM Shield
 
-#define tiberioNum "3398593331"
-#define casaNum "3383913320"
+
 
 #define rele1 12
 #define rele2 11
