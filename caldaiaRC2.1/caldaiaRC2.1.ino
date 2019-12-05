@@ -11,6 +11,7 @@ Firmware per il comado remoto della caldaia tramite relais. */
 #define sens 0
 #define trigg 1
 
+
 boolean manual = 0;
 boolean forced = 0;
 boolean command =  0;
@@ -20,9 +21,12 @@ boolean caldaiaState = 0;
 int LIMITemp = 10;
 int accensioni = 0;
 
-const long interval = 1000;
+#define interval = 1000;
+
 unsigned long previousMillis = 0;
 int ledState = LOW;
+unsigned long time = 0;
+unsigned long now = 0;
 
 GSM gsmAccess;
 GSM_SMS sms;
@@ -31,7 +35,6 @@ void setup()
 {
   //Serial.begin(9600);  //enable for debug
   //Serial.println("hello");
-
   /* set pinMode */
   pinMode(rele1, OUTPUT);
   pinMode(rele2, OUTPUT);
@@ -47,7 +50,6 @@ void setup()
   digitalWrite(ledR, LOW);
   digitalWrite(ledY, LOW);
 
-
   /* start GSM connection */
   boolean notConn = true;
   while(notConn)
@@ -56,20 +58,21 @@ void setup()
       notConn = false;
     } else {
       //Serial.println("Not connected");
+      //blinkg to show problem
        digitalWrite(ledY, HIGH);
-  delay(200);
-  digitalWrite(ledY, LOW);
-  delay(200);
-  digitalWrite(ledY, HIGH);
-  delay(200);
-  digitalWrite(ledY, LOW);
-   digitalWrite(ledY, HIGH);
-  delay(200);
-  digitalWrite(ledY, LOW);
-  delay(200);
-  digitalWrite(ledY, HIGH);
-  delay(200);
-  digitalWrite(ledY, LOW);
+       delay(200);
+       digitalWrite(ledY, LOW);
+       delay(200);
+       digitalWrite(ledY, HIGH);
+       delay(200);
+       digitalWrite(ledY, LOW);
+       digitalWrite(ledY, HIGH);
+       delay(200);
+       digitalWrite(ledY, LOW);
+       delay(200);
+       digitalWrite(ledY, HIGH);
+       delay(200);
+       digitalWrite(ledY, LOW);
     }
   }
 
@@ -82,6 +85,8 @@ void setup()
   delay(100);
   digitalWrite(ledY, LOW);
   //Serial.println("GSM initialized");
+
+  time = millis();
 }
 
 
@@ -186,6 +191,10 @@ void loop()
       sendSMS(stato, recvNum);
     }
 
+
+//applico stats
+
+// se è MANUAL
   if (manual == 1 && forced == 0){
     if ( analogRead(butt) > 500) {
         action(1);
@@ -195,11 +204,20 @@ void loop()
     }
   }
 
-  if (manual == 0 && forced == 0) { // se è auto
-    if ( tempread < LIMITemp){  // when temperature goes down the limit
+// se è AUTO
+  if (manual == 0 && forced == 0) {
+    now = millis();
+
+    if (tempread < LIMITemp && (now+time) < timetresh ){ // when temperature goes down the limit and it'less than 1h
         action (1);
     }
-    else {
+    if (tempread < LIMITemp && (now+time) > timetresh){
+        action (0);
+    }
+    if (tempread > LIMITemp && (now+time) < timetresh){
+        action (1);
+    }
+    if (tempread > LIMITemp && (now+time) > timetresh){
         action (0);
     }
   }
