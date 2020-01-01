@@ -9,43 +9,36 @@ Firmware per il comado remoto della caldaia tramite relais. */
 #define ledR 13
 #define ledY 6
 #define sens 0
-#define trigg 1
+#define blinktime 1000
+#define manualbutton 1
 
 
 boolean manual = 0;
 boolean forced = 0;
-boolean command =  0;
-boolean caldaiaState = 0;
+boolean command =  0; // flag per comando mandato via sms
+boolean caldaiaState = 0; // cosa sta facendo ora la caldaia
 
-
-int LIMITemp = 5;
+int LIMITemp = 10; // limite temperatura
 int accensioni = 0;
-
-#define interval  1000
-#define timetresh  3600000
-
 
 unsigned long previousMillis = 0;
 int ledState = LOW;
-unsigned long startime = 0;
-
-bool firstime = 1;
 
 GSM gsmAccess;
 GSM_SMS sms;
 
 void setup()
 {
-  Serial.begin(9600);  //enable for debug
-  Serial.println("hello");
-  /* set pinMode */
+  //Serial.begin(9600);  //enable for debug
+  //Serial.println("hello");
+
   pinMode(rele1, OUTPUT);
   pinMode(rele2, OUTPUT);
   pinMode(ledR, OUTPUT);
   pinMode(ledY, OUTPUT);
   pinMode(butt, INPUT);
   pinMode(sens, INPUT);
-  pinMode(trigg, INPUT);
+  pinMode(manualbutton, INPUT);
 
   /* set relais off and led off */
   digitalWrite(rele1,HIGH);  //when HIGH relais is off
@@ -60,76 +53,37 @@ void setup()
     if(gsmAccess.begin("") == GSM_READY){
       notConn = false;
     } else {
-      Serial.println("Not connected");
-      //blinkg to show problem
-       digitalWrite(ledY, HIGH);
-       delay(200);
-       digitalWrite(ledY, LOW);
-       delay(200);
-       digitalWrite(ledY, HIGH);
-       delay(200);
-       digitalWrite(ledY, LOW);
-       digitalWrite(ledY, HIGH);
-       delay(200);
-       digitalWrite(ledY, LOW);
-       delay(200);
-       digitalWrite(ledY, HIGH);
-       delay(200);
-       digitalWrite(ledY, LOW);
+      blink(4, 200, ledY);
     }
   }
-
-  /* two blinks when setup completed*/
-  digitalWrite(ledY, HIGH);
-  delay(100);
-  digitalWrite(ledY, LOW);
-  delay(100);
-  digitalWrite(ledY, HIGH);
-  delay(100);
-  digitalWrite(ledY, LOW);
-  Serial.println("GSM initialized");
-
-
-}
-
+  blink(2, 100, ledY); // setup completed
+  //Serial.println("GSM initialized");
+}// end of setup
 
 void loop()
 {
-  Serial.print( "first irime" );
-  Serial.println(firstime);
   unsigned long currentMillis = millis();
-  if (currentMillis > startime + timetresh){
-    firstime = 1;
-  }
-
-    Serial.print( "first irime dopo if" );
-  Serial.println(firstime);
-
   String azione;   // string which contains the message
   char recvNum[20];  // array which contains the number of the sender of SMS
-  int tempread = temperatura(); // get temperature
-  //Serial.println(tempread);
+  float tempread = temperatura(); // get temperature
+
   if (manual){
     digitalWrite(ledY, HIGH); // when manual led yellow is ON
   }
   else{
-    if (currentMillis - previousMillis >= interval) {
+    if (currentMillis - previousMillis >= blinktime) {
     // save the last time you blinked the LED
     previousMillis = currentMillis;
-
     // if the LED is off turn it on and vice-versa:
     if (ledState == LOW) {
       ledState = HIGH;
     } else {
       ledState = LOW;
     }
-
     // set the LED with the ledState of the variable:
     digitalWrite(ledY, ledState);
+    }
   }
-  }
-
-
 
   if ( sms.available() ) // if there is a message
   {
@@ -138,7 +92,6 @@ void loop()
     char c;
     int cont = 0;
     char msg[sms.available()];
-
     while( c = sms.read() )
       {
        msg[cont] = c;
@@ -149,8 +102,6 @@ void loop()
   }
   sms.flush();
   delay(1000);
-
-  //Serial.println(azione);
 
    if (azione.equals("auto") || azione.equals("Auto") ){ // toggles to automatic mode
       manual = 0;
@@ -172,10 +123,6 @@ void loop()
       command = 1;
     }
 
-    if( azione.equals("temp") )    { // send actual temperature
-      String tempToSend = String( temperatura() );
-      sendSMS(tempToSend, recvNum);
-    }
     if( azione.startsWith("set") || azione.startsWith("Set") ) {   // send a message like "set13" to set temp limit to 13 °C
       azione.remove(0, 3);
       LIMITemp = azione.toInt();
@@ -203,11 +150,7 @@ void loop()
       sendSMS(stato, recvNum);
     }
 
-
-//applico stats
-
-// se è MANUAL
-  if (manual == 1 && forced == 0){
+  if (manual == 1 && forced == 0){ // se è manuale cosidero il bottone
     if ( analogRead(butt) > 500) {
         action(1);
     }
@@ -216,43 +159,32 @@ void loop()
     }
   }
 
-// se è AUTO
-  if (manual == 0 && forced == 0) {
-
-    if (tempread < LIMITemp && firstime == 1 ){ // when temperature goes down the limit and it's the first time
+  if (manual == 0 && forced == 0) { // se è auto
+    if ( tempread < LIMITemp - 1 ){  // when temperature goes down the limit
         action (1);
-        startime = millis();
-        firstime = 0;
     }
-    if (tempread < LIMITemp && firstime == 0 ){ // when temperature goes down the limit and not the first time
-
-    }
-    if (tempread > LIMITemp && firstime == 1 ){
+    if (tepread > LIMITemp + 1){
         action (0);
     }
-    if (tempread > LIMITemp && firstime == 0){
-    }
   }
 
-// modalità forzata
-if (forced==1){
-  if (command ==  1){
-    action (1);
-  }
-  if (command == 0){
-    action (0);
-  }
+
+  if (forced==1){
+    if (command ==  1){
+      action (1);
+    }
+    if (command == 0){
+      action (0);
+    }
 }
-   if ( analogRead(trigg) > 500) {
+
+
+   if ( analogRead(manualbutton) > 500) {
     manual = 1;
     forced = 0;
     }
 
   delay(1000);
-
-
-   Serial.print( "first irime" );
-  Serial.println(firstime);
 }
 
 
@@ -293,5 +225,15 @@ void action (boolean state){
       accensioni++;
       }
     caldaiaState = 1;
+  }
+}
+
+
+void blink(int rep, int dur, int led){
+  for (int i = 0; i < rep; i++){
+    digitalWrite(led, HIGH);
+    delay(dur);
+    digitalWrite(led, LOW);
+    delay(dur);
   }
 }
