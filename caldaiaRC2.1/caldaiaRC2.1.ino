@@ -89,7 +89,7 @@ void setup()
   digitalWrite(ledY, LOW);
   Serial.println("GSM initialized");
 
-  
+
 }
 
 
@@ -104,7 +104,7 @@ void loop()
 
     Serial.print( "first irime dopo if" );
   Serial.println(firstime);
-  
+
   String azione;   // string which contains the message
   char recvNum[20];  // array which contains the number of the sender of SMS
   int tempread = temperatura(); // get temperature
@@ -225,13 +225,12 @@ void loop()
         firstime = 0;
     }
     if (tempread < LIMITemp && firstime == 0 ){ // when temperature goes down the limit and not the first time
-        action (0);
+
     }
     if (tempread > LIMITemp && firstime == 1 ){
         action (0);
     }
     if (tempread > LIMITemp && firstime == 0){
-        action (0);
     }
   }
 
