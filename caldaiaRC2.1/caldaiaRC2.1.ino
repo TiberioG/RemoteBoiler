@@ -18,11 +18,16 @@ boolean forced = 0;
 boolean command =  0; // flag per comando mandato via sms
 boolean caldaiaState = 0; // cosa sta facendo ora la caldaia
 
-int LIMITemp = 10; // limite temperatura
+int LIMITemp = 6; // limite temperatura
 int accensioni = 0;
+float hist = 1;
 
 unsigned long previousMillis = 0;
 int ledState = LOW;
+
+//char tiberio[20]="+393398593331";
+//char claudio[20]="+393482292520";
+//char casa[20]="+393383913320";
 
 GSM gsmAccess;
 GSM_SMS sms;
@@ -123,11 +128,11 @@ void loop()
       command = 1;
     }
 
-    if( azione.startsWith("set") || azione.startsWith("Set") ) {   // send a message like "set13" to set temp limit to 13 °C
+    if( azione.startsWith("Set") || azione.startsWith("Set") ) {   // send a message like "set13" to set temp limit to 13 °C
       azione.remove(0, 3);
       LIMITemp = azione.toInt();
     }
-    if ( azione.equals("status") || azione.equals("Status") )  { // send status of system
+    if ( azione.equals("status") || azione.equals("Status")  )  { // send status of system
       String stato = "Stato: ";
       if(manual){
        stato = stato + "manual" ;
@@ -138,14 +143,14 @@ void loop()
       if (forced){
        stato = stato + "forced";
       }
-      stato = stato + " Caldaia:";
+      stato = stato + " Int:";
       if (caldaiaState){
-        stato = stato + " accesa";
+        stato = stato + " ON";
       }
       else{
-        stato = stato + " spenta";
+        stato = stato + " OFF";
       }
-      stato = stato + " Limit:" + LIMITemp + " Temp:" + tempread +"acc:" +accensioni;
+      stato = stato + " Limit:" + LIMITemp + " Temp:" + tempread +" acc:" +accensioni;
 
       sendSMS(stato, recvNum);
     }
@@ -160,10 +165,10 @@ void loop()
   }
 
   if (manual == 0 && forced == 0) { // se è auto
-    if ( tempread < LIMITemp - 1 ){  // when temperature goes down the limit
+    if ( tempread < LIMITemp - hist ){  // when temperature goes down the limit
         action (1);
     }
-    if (tepread > LIMITemp + 1){
+    if (tempread > LIMITemp + hist){
         action (0);
     }
   }
@@ -206,7 +211,7 @@ void sendSMS(String text, char number[20]){ //sends SMS
   sms.beginSMS(number);
   sms.print(text);
   sms.endSMS();
-  Serial.println("message sent");
+  //Serial.println("message sent");
 }
 
 
@@ -227,7 +232,6 @@ void action (boolean state){
     caldaiaState = 1;
   }
 }
-
 
 void blink(int rep, int dur, int led){
   for (int i = 0; i < rep; i++){
