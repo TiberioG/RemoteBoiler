@@ -128,7 +128,7 @@ void loop()
       command = 1;
     }
 
-    if( azione.startsWith("Set") || azione.startsWith("Set") ) {   // send a message like "set13" to set temp limit to 13 °C
+    if( azione.startsWith("set") || azione.startsWith("Set") ) {   // send a message like "set13" to set temp limit to 13 °C
       azione.remove(0, 3);
       LIMITemp = azione.toInt();
     }
